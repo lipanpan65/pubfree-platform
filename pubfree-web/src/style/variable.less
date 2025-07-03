@@ -1,11 +1,12 @@
-// 自定义变量
+// 自定义变量 - 这些变量在 antd v5 中已通过 ConfigProvider theme 配置替代
+// 保留这些变量用于其他自定义样式
 @main-color: #6247aa;
 @secondary-color: #815ac0;
 @sub-color: #a06cd5;
 
-// antd变量
-@layout-header-background: @main-color;
-@heading-color: @main-color;
-@primary-color: @main-color;
-@link-color: @main-color;
-@layout-header-height: 50px;
+// antd变量 - 在 antd v5 中已通过 theme 配置替代，这里保留作为参考
+// @layout-header-background: @main-color;  // 已通过 theme.components.Layout.headerBg 配置
+// @heading-color: @main-color;             // 已通过 theme.token.colorTextHeading 配置
+// @primary-color: @main-color;             // 已通过 theme.token.colorPrimary 配置
+// @link-color: @main-color;                // 已通过 theme.token.colorLink 配置
+// @layout-header-height: 50px;             // 已通过 theme.components.Layout.headerHeight 配置
