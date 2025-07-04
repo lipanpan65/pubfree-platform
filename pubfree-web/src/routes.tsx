@@ -10,7 +10,7 @@ import { Route, Routes as RouterRoutes, Navigate } from "react-router-dom";
 // import ProjectLayout from "./page/project/project-detail/project-layout";
 // import ProjectSetting from "./page/project/project-detail/project-setting/project-setting";
 // import ProjectWorkspace from "./page/project/project-detail/project-workspace/project-workspace";
-// import ProjectList from "./page/project/project-list/project-list";
+import ProjectList from "./pages/project/project-list/project-list";
 // import userStore from "./store/user-store";
 
 const Routes: React.FC = observer(() => {
@@ -33,8 +33,8 @@ const Routes: React.FC = observer(() => {
   return (
     <RouterRoutes>
       {/* 临时占位路由，等组件开发完成后取消注释 */}
-      <Route path="/projects" element={<div>Projects List (待开发)</div>} />
-      
+      {/* <Route path="/projects" element={<div>Projects List (待开发)</div>} /> */}
+      <Route path="/projects" element={<ProjectList />} />
       {/* 示例路由结构，等组件开发完成后取消注释并修改 */}
       {/* 
       <Route path="/projects" element={<ProjectList />} />

@@ -4,10 +4,10 @@ import { isEmpty } from "lodash-es";
 import { toJS } from "mobx";
 import { observer } from "mobx-react";
 import React, { useEffect, useRef } from "react";
-import { RouteComponentProps } from "react-router-dom";
+// import { RouteComponentProps } from "react-router-dom";
 import styles from "./project-workspace.module.less";
 import { ProjectWorkspaceStore } from "./project-workspzce-store";
-
+import { ProjectLayoutStore } from "../project-layout-store";
 // import { projectLayoutStore } from "@/store/project-layout-store";
 // import CreateWorkspaceModal from "@/components/project/create-workspace-modal/create-workspace-modal";
 // import WorkspaceSingle from "@/components/project/workspace-single/workspace-single";
@@ -73,7 +73,7 @@ const ProjectWorkspace: React.FC<
     workspaceId: string;
   }>
 > = observer((props) => {
-  // const storeRef = useRef(projectWorkspaceStore);
+  const storeRef = useRef(new ProjectWorkspaceStore());
 
   useEffect(() => {
     // projectLayoutStore.setStatus({ curActiveKey: "workspaces" });

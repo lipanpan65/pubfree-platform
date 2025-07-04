@@ -36,8 +36,10 @@ export class ProjectLayoutStore extends BasicStore<Status> {
   }
 
   async fetchProjectInfo() {
-    const { projectId } = this.params || {};
-    const res = await Api.project.getProjectInfo(projectId);
+    if (!this.params?.projectId) {
+      return;
+    }
+    const res = await Api.project.getProjectInfo(this.params.projectId);
     if (res.code === EApiCode.Success) {
       this.setStatus({
         project: res.data,

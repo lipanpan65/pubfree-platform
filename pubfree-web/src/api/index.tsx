@@ -4,7 +4,7 @@
 // import * as domain from "./detail/domain";
 // import * as group from "./detail/group";
 // import * as member from "./detail/member";
-// import * as project from "./detail/project";
+import * as project from "./detail/project";
 
 export interface IApiRes<T> {
   code: EApiCode;
@@ -18,10 +18,10 @@ export enum EApiCode {
 }
 
 const Api = {
-  account: account,
-  domain: domain,
-  group: group,
-  member: member,
+//   account: account,
+//   domain: domain,
+//   group: group,
+//   member: member,
   project: project,
 };
 

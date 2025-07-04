@@ -3,11 +3,26 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [
+          ['@babel/plugin-proposal-decorators', { legacy: true }],
+          ['@babel/plugin-proposal-class-properties', { loose: false }],
+        ],
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
     },
+  },
+  define: {
+    // 定义全局变量
+    USE_V_CONSOLE: JSON.stringify(false),
+    SERVER_URL: JSON.stringify('http://localhost:8080'),
+    DOMAIN_SUFFIX: JSON.stringify(''),
   },
   server: {
     port: 3000,
