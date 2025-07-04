@@ -4,7 +4,6 @@ import { isEmpty } from "lodash-es";
 import { toJS } from "mobx";
 import { observer } from "mobx-react";
 import React, { useEffect, useRef } from "react";
-// import { RouteComponentProps } from "react-router-dom";
 import styles from "./project-workspace.module.less";
 import { ProjectWorkspaceStore } from "./project-workspzce-store";
 import { ProjectLayoutStore } from "../project-layout-store";

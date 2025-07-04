@@ -38,4 +38,8 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
   },
+  // 忽略 antd 的 React 19 兼容性警告
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+  },
 })

@@ -5,7 +5,6 @@ import { IProjectDTO } from "@/interface/client-api/project.interface";
 
 import { BasicStore } from "@/util/basic-store";
 import { getQuery } from "@/util/get-query";
-import { useNavigate } from "react-router-dom";
 
 class Status {
   isLoading: boolean = true;
@@ -133,16 +132,16 @@ export class ProjectListStore extends BasicStore<Status> {
     }
   }
 
-  async onCardTabChange(key: "my" | "all" | string) {
-
-    const navigate = useNavigate();
+  async onCardTabChange(key: "my" | "all" | string, navigate: (path: string) => void) {
     navigate(`/projects?active_tab=${key}`);
-
     this.setStatus({ curActiveTab: key as "my" | "all" });
     await this.fetchProjects();
   }
 
   onClickCreateProjectButton() {
+    console.log("onClickCreateProjectButton called");
+    console.log("Current status before update:", this.status);
     this.setStatus({ isShowCreateProjectModal: true });
+    console.log("Status after update:", this.status);
   }
 }

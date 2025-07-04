@@ -1,7 +1,7 @@
 import { Card } from "antd";
-import { toJS } from "mobx";
 import { observer } from "mobx-react";
 import React, { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { WideLayout } from "@/components/layout/wide-layout/wide-layout";
 
 import ProjectListCard from "@/pages/components/project-list-card/project-list-card";
@@ -10,6 +10,7 @@ import { ProjectListStore } from "@/pages/project/project-list/project-list-stor
 
 const ProjectList: React.FC = observer(() => {
   const storeRef = useRef(new ProjectListStore());
+  const navigate = useNavigate();
 
   useEffect(() => {
     storeRef.current.init();
@@ -20,21 +21,25 @@ const ProjectList: React.FC = observer(() => {
   }, []);
 
   const store = storeRef.current;
-  const status = toJS(store.status);
+  const status = store.status;
+
+  // 添加调试信息
+  console.log("ProjectList render - status:", status);
+  console.log("isShowCreateProjectModal:", status?.isShowCreateProjectModal);
 
   return (
     <WideLayout width={1280}>
       <Card
-        activeTabKey={status.curActiveTab}
+        activeTabKey={status?.curActiveTab || "my"}
         tabList={[
           { key: "my", tab: "我的项目" },
           { key: "all", tab: "所有项目" },
         ]}
         onTabChange={async (key) => {
-          await store.onCardTabChange(key);
+          await store.onCardTabChange(key, navigate);
         }}
       >
-        {status.curActiveTab === "my" && (
+        {status?.curActiveTab === "my" && (
           <ProjectListCard
             searchWord={status.mySearchWord || undefined}
             isLoading={status.myIsLoading}
@@ -53,7 +58,7 @@ const ProjectList: React.FC = observer(() => {
           />
         )}
 
-        {status.curActiveTab === "all" && (
+        {status?.curActiveTab === "all" && (
           <ProjectListCard
             searchWord={status.allSearchWord || undefined}
             isLoading={status.allIsLoading}
@@ -73,16 +78,16 @@ const ProjectList: React.FC = observer(() => {
         )}
       </Card>
 
-      {storeRef.current.status.isShowCreateProjectModal && (
+      {status?.isShowCreateProjectModal && (
         <CreateProjectModal
           onOk={async () => {
-            storeRef.current.setStatus({
+            store.setStatus({
               isShowCreateProjectModal: false,
             });
             await store.fetchProjects();
           }}
           onCancel={() => {
-            storeRef.current.setStatus({
+            store.setStatus({
               isShowCreateProjectModal: false,
             });
           }}

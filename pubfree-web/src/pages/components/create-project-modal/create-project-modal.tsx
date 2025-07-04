@@ -35,7 +35,7 @@ const CreateProjectModal: React.FC<IProps> = (props) => {
 
   return (
     <Modal
-      visible={true}
+      open={true}
       title="新建项目"
       width="800px"
       onOk={async () => {
