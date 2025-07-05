@@ -1,0 +1,92 @@
+# PubFree Server - 生产环境 Dockerfile
+# 多阶段构建：构建阶段
+FROM golang:1.24.3-alpine AS builder
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装构建依赖
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    build-base \
+    upx
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 设置 Go 环境变量
+ENV GO111MODULE=on
+ENV GOPROXY=https://goproxy.cn,direct
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOARCH=amd64
+
+# 复制 go.mod 和 go.sum
+COPY go.mod go.sum ./
+
+# 下载依赖并验证
+RUN go mod download && go mod verify
+
+# 复制源代码
+COPY . .
+
+# 获取构建信息
+RUN BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") && \
+    GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") && \
+    GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "dev") && \
+    echo "Build Time: $BUILD_TIME" && \
+    echo "Git Commit: $GIT_COMMIT" && \
+    echo "Git Tag: $GIT_TAG"
+
+# 构建应用（生产环境优化）
+RUN go build \
+    -ldflags="-s -w -X main.version=${GIT_TAG:-dev} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.gitCommit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" \
+    -o server ./cmd/server
+
+# 使用 upx 压缩二进制文件（可选）
+RUN upx --best --lzma server || echo "UPX compression failed, continuing without compression"
+
+# 运行阶段：使用 distroless 镜像
+FROM gcr.io/distroless/static:nonroot
+
+# 设置标签
+LABEL maintainer="PubFree Team" \
+      description="PubFree Server - Production Environment" \
+      version="1.0" \
+      module="pubfree-platform/pubfree-server"
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制构建的二进制文件
+COPY --from=builder /app/server .
+
+# 复制配置文件
+COPY --from=builder /app/configs ./configs
+
+# 复制时区数据
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+# 复制 CA 证书
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# 暴露端口
+EXPOSE 8080
+
+# 设置环境变量
+ENV GIN_MODE=release
+ENV APP_ENV=prod
+ENV TZ=Asia/Shanghai
+ENV MODULE_NAME=pubfree-platform/pubfree-server
+
+# 使用 distroless 的 nonroot 用户
+USER nonroot:nonroot
+
+# 健康检查（distroless 环境中的健康检查）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=5 \
+    CMD ["/app/server", "--health-check"] || exit 1
+
+# 启动命令
+ENTRYPOINT ["/app/server"]

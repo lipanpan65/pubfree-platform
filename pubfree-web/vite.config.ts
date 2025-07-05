@@ -19,17 +19,21 @@ export default defineConfig({
     },
   },
   define: {
-    // 定义全局变量
+    // 定义全局变量 - 根据环境动态设置
     USE_V_CONSOLE: JSON.stringify(false),
-    SERVER_URL: JSON.stringify('http://localhost:8080'),
-    DOMAIN_SUFFIX: JSON.stringify(''),
+    SERVER_URL: JSON.stringify(
+      process.env.VITE_SERVER_URL || 
+      (process.env.NODE_ENV === 'production' ? 'http://pubfree-server:8080' : 'http://localhost:8080')
+    ),
+    DOMAIN_SUFFIX: JSON.stringify(process.env.VITE_DOMAIN_SUFFIX || ''),
   },
   server: {
+    host: '0.0.0.0', // 添加这一行以支持 Docker
     port: 3000,
-    open: true,
+    open: false, // Docker 环境中关闭自动打开浏览器
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
     },

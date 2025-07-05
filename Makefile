@@ -152,6 +152,25 @@ init:
 	@mkdir -p logs backups uploads
 	@echo "✅ 初始化完成"
 
+# 添加到 Makefile
+web-install:
+	@./scripts/web-dev.sh install $(PKGS)
+
+web-dev:
+	@./scripts/web-dev.sh dev $(PKGS)
+
+web-remove:
+	@./scripts/web-dev.sh remove $(PKGS)
+
+web-shell:
+	@./scripts/web-dev.sh shell
+
+web-logs:
+	@./scripts/web-dev.sh logs
+
+web-status:
+	@./scripts/web-dev.sh status
+
 # 检查环境配置
 check:
 	@echo "🔍 检查环境配置..."

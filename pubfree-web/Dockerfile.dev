@@ -1,0 +1,64 @@
+# PubFree Web - 开发环境 Dockerfile (简化版本)
+# 基于 Node.js 20.19.0 alpine 镜像
+FROM node:20.19.0-alpine
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装必要的包和工具
+RUN apk add --no-cache \
+    git \
+    python3 \
+    make \
+    g++ \
+    curl \
+    bash \
+    ca-certificates \
+    tzdata
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 设置 npm 镜像源（加速依赖下载）
+RUN npm config set registry https://registry.npmmirror.com && \
+    corepack enable
+
+# 设置环境变量
+ENV NODE_ENV=development
+ENV VITE_ENV=development
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+ENV SASS_BINARY_SITE="https://npmmirror.com/mirrors/node-sass/"
+ENV PYTHON_MIRROR="https://npmmirror.com/mirrors/python/"
+
+# 复制 package.json 和 package-lock.json
+COPY package*.json ./
+
+# 清理 npm 缓存并安装依赖
+RUN npm cache clean --force && \
+    npm ci --no-audit --prefer-offline
+
+# 复制配置文件
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY eslint.config.js ./
+COPY index.html ./
+
+# 复制源代码
+COPY src/ ./src/
+COPY public/ ./public/
+
+# 设置工作目录权限
+RUN chmod -R 755 /app
+
+# 暴露端口
+EXPOSE 3000
+
+# 设置健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
+# 开发环境启动命令（直接使用 npm 命令）
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]

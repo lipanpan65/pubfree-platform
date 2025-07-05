@@ -105,3 +105,139 @@ make logs ENV=dev
 # 备份数据
 make backup ENV=prod
 >>>>>>> pubfree-server
+
+
+
+
+
+# 测试环境备份
+make backup ENV=test
+
+# 生产环境备份
+make backup ENV=prod
+
+# 带参数的备份
+./scripts/backup-test.sh --no-cleanup
+./scripts/backup-prod.sh --no-remote --no-notify
+
+
+
+
+# 列出可用备份
+./scripts/restore.sh -l test
+
+# 交互式恢复
+./scripts/restore.sh dev
+
+# 使用最新备份
+./scripts/restore.sh test --latest
+
+# 恢复指定文件
+./scripts/restore.sh prod backup_file.sql.gz --force
+
+
+
+
+# 开发环境
+cd pubfree-web
+docker build -f Dockerfile.dev -t pubfree-web:dev .
+
+# 生产环境
+docker build -f Dockerfile.prod -t pubfree-web:prod .
+
+# 测试运行
+docker run -p 3000:3000 pubfree-web:dev
+
+
+
+# 本地开发（使用 localhost:8080）
+npm run dev
+
+# Docker 开发（使用环境变量）
+VITE_API_TARGET=http://pubfree-server:8080 npm run dev
+
+# 或者使用 Docker Compose
+make dev
+
+
+
+# 构建开发环境
+cd pubfree-web
+docker build -f Dockerfile.dev -t pubfree-web:dev .
+
+# 构建生产环境
+docker build -f Dockerfile.prod -t pubfree-web:prod .
+
+# 运行开发环境
+docker run -p 3000:3000 -e VITE_API_TARGET=http://pubfree-server:8080 pubfree-web:dev
+
+# 运行生产环境
+docker run -p 80:80 pubfree-web:prod
+
+
+
+# 验证 Node.js 版本
+docker run --rm pubfree-web:dev node --version
+# 输出: v20.19.0
+
+# 验证 npm 版本
+docker run --rm pubfree-web:dev npm --version
+# 输出: 10.9.0（Node.js 20.19.0 自带的 npm 版本）
+
+# 检查构建大小
+docker images | grep pubfree-web
+
+
+
+
+pubfree-web:
+  build: 
+    context: ../../pubfree-web
+    dockerfile: Dockerfile.dev
+  container_name: pubfree-web-dev
+  ports:
+    - "${WEB_PORT}:3000"
+  environment:
+    - NODE_ENV=development
+    - VITE_API_TARGET=http://pubfree-server:8080
+    - VITE_SERVER_URL=http://pubfree-server:8080
+    - VITE_ENV=development
+  depends_on:
+    - pubfree-server
+  volumes:
+    - ../../pubfree-web:/app
+    - /app/node_modules
+  restart: unless-stopped
+  networks:
+    - pubfree-dev-network
+
+
+
+# 安装包（推荐方式）
+make web-add PKG="mobx mobx-react-lite"
+
+# 或者直接使用脚本
+./scripts/dev-web.sh add mobx mobx-react-lite
+
+# 移除包
+make web-remove PKG="mobx"
+
+# 进入容器调试
+make web-shell
+
+# 查看日志
+make web-logs
+
+
+
+# 方式1：使用 Make 命令
+make web-install PKGS="mobx mobx-react-lite"
+make web-dev PKGS="@types/mobx"
+
+# 方式2：直接使用脚本
+./scripts/web-dev.sh install mobx mobx-react-lite
+./scripts/web-dev.sh dev @types/mobx
+
+# 方式3：手动操作
+docker exec -it pubfree-web-dev npm install mobx mobx-react-lite
+docker restart pubfree-web-dev

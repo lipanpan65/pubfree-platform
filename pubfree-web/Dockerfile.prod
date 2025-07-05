@@ -1,0 +1,285 @@
+# PubFree Web - 生产环境 Dockerfile
+# 多阶段构建：构建阶段
+FROM node:20.19.0-alpine AS builder
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装构建依赖
+RUN apk add --no-cache \
+    git \
+    python3 \
+    make \
+    g++ \
+    ca-certificates \
+    tzdata
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 设置 npm 镜像源
+RUN npm config set registry https://registry.npmmirror.com && \
+    corepack enable
+
+# 设置环境变量
+ENV NODE_ENV=production
+ENV VITE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# 复制 package.json 和 package-lock.json
+COPY package*.json ./
+
+# 安装依赖（包括 devDependencies，用于构建）
+RUN npm ci --no-audit --prefer-offline
+
+# 复制配置文件
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY eslint.config.js ./
+COPY index.html ./
+
+# 复制源代码
+COPY src/ ./src/
+COPY public/ ./public/
+
+# 显示构建信息
+RUN echo "🏗️  Building PubFree Web Application..." && \
+    echo "📦 Node.js: $(node --version)" && \
+    echo "📦 npm: $(npm --version)" && \
+    echo "⚛️  React: 19.1.0" && \
+    echo "🎨 Ant Design: 5.26.3" && \
+    echo "🔧 TypeScript: 5.8.3" && \
+    echo "🌐 Environment: Production" && \
+    echo "==================================" && \
+    echo "🚀 Starting build process..."
+
+# 构建应用
+RUN npm run build
+
+# 验证构建结果
+RUN echo "✅ Build completed successfully!" && \
+    echo "📁 Build output:" && \
+    ls -la dist/ && \
+    echo "📊 Build size:" && \
+    du -sh dist/
+
+# 运行阶段：使用 nginx 1.25 alpine
+FROM nginx:1.25-alpine
+
+# 设置标签
+LABEL maintainer="PubFree Team" \
+      description="PubFree Web Application - Production Environment" \
+      version="1.0.0" \
+      nodejs.version="20.19.0" \
+      react.version="19.1.0" \
+      antd.version="5.26.3"
+
+# 安装必要的包
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    curl \
+    bash \
+    jq
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 复制构建的静态文件
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 复制自定义 nginx 配置
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# 创建 nginx 配置目录
+RUN mkdir -p /etc/nginx/conf.d /var/log/nginx
+
+# 创建优化的站点配置文件
+RUN cat > /etc/nginx/conf.d/default.conf << 'EOF'
+# PubFree Web - Nginx 生产环境配置
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+    
+    # 安全设置
+    server_tokens off;
+    add_header X-Frame-Options DENY always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' http://pubfree-server:8080 ws://pubfree-server:8080;" always;
+    
+    # 启用 gzip 压缩
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+    gzip_types
+        application/atom+xml
+        application/geo+json
+        application/javascript
+        application/x-javascript
+        application/json
+        application/ld+json
+        application/manifest+json
+        application/rdf+xml
+        application/rss+xml
+        application/xhtml+xml
+        application/xml
+        font/eot
+        font/otf
+        font/ttf
+        image/svg+xml
+        text/css
+        text/javascript
+        text/plain
+        text/xml;
+    
+    # 静态资源缓存策略
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp|avif)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header Vary "Accept-Encoding";
+        access_log off;
+        
+        # 预压缩支持
+        gzip_static on;
+        
+        # 错误处理
+        error_page 404 = @fallback;
+    }
+    
+    # HTML 文件缓存策略
+    location ~* \.html$ {
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        etag on;
+    }
+    
+    # API 代理到后端服务
+    location /api/ {
+        proxy_pass http://pubfree-server:8080/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        
+        # 超时设置
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+        
+        # 缓冲设置
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+        proxy_busy_buffers_size 8k;
+        
+        # 错误处理
+        proxy_intercept_errors on;
+        error_page 502 503 504 /50x.html;
+    }
+    
+    # WebSocket 支持
+    location /ws/ {
+        proxy_pass http://pubfree-server:8080/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # WebSocket 超时设置
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+    
+    # SPA 路由支持
+    location / {
+        try_files $uri $uri/ @fallback;
+    }
+    
+    # 回退到 index.html
+    location @fallback {
+        rewrite ^.*$ /index.html last;
+    }
+    
+    # 健康检查端点
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+    
+    # 禁止访问隐藏文件
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+    
+    # 错误页面
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}
+EOF
+
+# 创建 nginx 运行时目录
+RUN mkdir -p /var/cache/nginx/client_temp \
+    /var/cache/nginx/proxy_temp \
+    /var/cache/nginx/fastcgi_temp \
+    /var/cache/nginx/uwsgi_temp \
+    /var/cache/nginx/scgi_temp && \
+    chown -R nginx:nginx /var/cache/nginx
+
+# 创建日志目录
+RUN mkdir -p /var/log/nginx && \
+    chown -R nginx:nginx /var/log/nginx
+
+# 设置静态文件权限
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html
+
+# 暴露端口
+EXPOSE 80
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+# 创建启动脚本
+RUN cat > /docker-entrypoint.sh << 'EOF'
+#!/bin/bash
+echo "=================================="
+echo "🚀 PubFree Web Production Server"
+echo "=================================="
+echo "📦 Node.js Build: 20.19.0"
+echo "⚛️  React: 19.1.0"
+echo "🎨 Ant Design: 5.26.3"
+echo "🌐 Environment: Production"
+echo "🔧 Web Server: Nginx 1.25"
+echo "🔗 API Backend: http://pubfree-server:8080"
+echo "🏠 Frontend: http://localhost:80"
+echo "=================================="
+echo "📁 Static files:"
+find /usr/share/nginx/html -type f -name "*.html" -o -name "*.js" -o -name "*.css" | head -10
+echo "📊 Total files: $(find /usr/share/nginx/html -type f | wc -l)"
+echo "📦 Total size: $(du -sh /usr/share/nginx/html | cut -f1)"
+echo "=================================="
+echo "🎯 Starting Nginx server..."
+exec nginx -g "daemon off;"
+EOF
+
+RUN chmod +x /docker-entrypoint.sh
+
+# 启动 nginx
+CMD ["/docker-entrypoint.sh"]

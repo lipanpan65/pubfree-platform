@@ -1,0 +1,95 @@
+# PubFree Server - 开发环境 Dockerfile
+# 基于 Go 1.24.3 alpine 镜像
+FROM golang:1.24.3-alpine AS builder
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装必要的包（包含 build-base 用于 CGO）
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    build-base \
+    wget
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 设置 Go 环境变量
+ENV GO111MODULE=on
+ENV GOPROXY=https://goproxy.cn,direct
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOARCH=amd64
+
+# 复制 go.mod 和 go.sum
+COPY go.mod go.sum ./
+
+# 下载依赖并验证
+RUN go mod download && go mod verify
+
+# 复制源代码
+COPY . .
+
+# 构建应用（开发环境保留调试信息）
+RUN go build -ldflags="-X main.version=dev-$(date +%Y%m%d-%H%M%S)" -o server ./cmd/server
+
+# 运行阶段
+FROM alpine:latest
+
+# 安装必要的包
+RUN apk --no-cache add \
+    ca-certificates \
+    tzdata \
+    curl \
+    bash
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 创建非 root 用户
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制构建的二进制文件
+COPY --from=builder /app/server .
+
+# 复制配置文件模板
+COPY --from=builder /app/configs ./configs
+
+# 复制启动脚本
+COPY dev-start.sh /app/dev-start.sh
+
+# 创建必要的目录并设置权限
+RUN mkdir -p logs uploads tmp && \
+    chown -R appuser:appgroup /app && \
+    chmod +x server && \
+    chmod +x /app/dev-start.sh
+
+# 创建必要的目录并设置权限
+RUN mkdir -p logs uploads tmp && \
+    chown -R appuser:appgroup /app && \
+    chmod +x server && \
+    chmod +x /app/dev-start.sh
+
+# 切换到非 root 用户
+USER appuser
+
+# 暴露端口
+EXPOSE 8080
+
+# 设置环境变量
+ENV GIN_MODE=debug
+ENV APP_ENV=dev
+ENV MODULE_NAME=pubfree-platform/pubfree-server
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# 启动命令
+CMD ["/app/dev-start.sh"]

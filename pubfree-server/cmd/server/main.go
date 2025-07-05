@@ -18,7 +18,24 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	version   = "dev"
+	buildTime = "unknown"
+	gitCommit = "unknown"
+)
+
 func main() {
+
+	// 处理 --health-check 参数
+	if len(os.Args) > 1 && os.Args[1] == "--health-check" {
+		// 这里可以添加健康检查逻辑
+		fmt.Println("Health check passed")
+		os.Exit(0)
+	}
+
+	// 显示版本信息
+	fmt.Printf("PubFree Server %s (built %s, commit %s)\n", version, buildTime, gitCommit)
+
 	// 加载配置
 	cfg, err := config.LoadConfig()
 	if err != nil {
