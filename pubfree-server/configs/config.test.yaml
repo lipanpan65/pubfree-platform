@@ -1,0 +1,51 @@
+app:
+  name: "PubFree Platform Test"
+  version: "1.0.0-test"
+  description: "一个免费的发布平台 - 测试环境"
+  debug: false
+  timezone: "Asia/Shanghai"
+
+server:
+  name: "pubfree-server-test"
+  mode: "test"
+  port: ":8081"
+  read_timeout: 30s
+  write_timeout: 30s
+  max_header_mb: 1
+
+database:
+  driver: "mysql"
+  host: "localhost"
+  port: 3306
+  username: "test_user"
+  password: "test_password"
+  dbname: "pubfree_platform_test"
+  charset: "utf8mb4"
+  parse_time: true
+  loc: "Local"
+  max_idle_conns: 3
+  max_open_conns: 10
+  conn_max_lifetime: 300s
+  log_mode: false
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 2
+  pool_size: 3
+
+jwt:
+  secret: "test-jwt-secret-key"
+  expires_at: 1h
+  issuer: "pubfree-platform-test"
+
+logger:
+  level: "warn"
+  format: "json"
+  output: "file"
+  filename: "logs/test.log"
+  max_size: 50
+  max_age: 7
+  max_backups: 2
+  compress: true
