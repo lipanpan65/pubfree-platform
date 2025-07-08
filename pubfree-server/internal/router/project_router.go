@@ -31,5 +31,6 @@ func SetupProjectRoutes(r *gin.RouterGroup, projectHandler *handler.ProjectHandl
 		// 项目部署管理
 		projectGroup.POST("/:id/deploys", projectHandler.CreateProjectDeploy)
 		projectGroup.GET("/:id/deploys", projectHandler.GetProjectDeploys)
+
 	}
 }
