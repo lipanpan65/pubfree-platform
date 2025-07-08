@@ -1,84 +1,141 @@
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS pubfree DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE pubfree;
+USE pubfree_dev;
 
--- 用户表
-CREATE TABLE IF NOT EXISTS `user` (
-    id         int(11)      NOT NULL AUTO_INCREMENT COMMENT '自增id',
-    name       varchar(64)  NOT NULL COMMENT '用户名',
-    password   varchar(128) NOT NULL COMMENT '密码',
-    is_del     tinyint(2)   NOT NULL DEFAULT 0 COMMENT '是否逻辑删除',
-    created_at datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
-    updated_at datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
-    PRIMARY KEY (id),
-    INDEX idx_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+drop table if exists `group`;
+drop table if exists `group_member`;
+drop table if exists `project`;
+drop table if exists `project_domain`;
+drop table if exists `project_env`;
+drop table if exists `project_env_deploy`;
+drop table if exists `project_member`;
+drop table if exists `user`;
 
--- 空间表
-CREATE TABLE IF NOT EXISTS `group` (
-    id             int(11)      NOT NULL AUTO_INCREMENT COMMENT '自增 id',
-    name           varchar(128) NOT NULL COMMENT '空间名称',
-    description    varchar(255) DEFAULT NULL COMMENT '空间描述说明',
-    owner_id       int(11)      NOT NULL COMMENT '空间拥有者 id',
-    create_user_id int(11)      NOT NULL COMMENT '空间创建者 id',
-    is_del         tinyint(2)   NOT NULL DEFAULT 0 COMMENT '是否逻辑删除',
-    created_at     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
-    updated_at     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='空间表';
+create table `group`
+(
+    id             int(11)      not null auto_increment comment '自增 id',
+    name           varchar(128) not null comment '空间名称',
+    description    varchar(255)          default null comment '空间描述说明',
+    owner_id       int(11)      not null comment '空间拥有者 id',
+    create_user_id int(11)      not null comment '空间创建者 id',
+    is_del         tinyint(2)   not null default 0 comment '是否逻辑删除',
+    created_at     datetime     not null default current_timestamp comment '记录创建时间',
+    updated_at     datetime     not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '空间表';
 
--- 空间成员表
-CREATE TABLE IF NOT EXISTS `group_member` (
-    id         int(11)    NOT NULL AUTO_INCREMENT COMMENT '自增id',
-    group_id   int(11)    NOT NULL COMMENT '空间 id',
-    user_id    int(11)    NOT NULL COMMENT '用户 id',
-    role       int(8)     NOT NULL COMMENT '角色',
-    is_del     tinyint(2) NOT NULL DEFAULT 0 COMMENT '是否逻辑删除',
-    created_at datetime   NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
-    updated_at datetime   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
-    PRIMARY KEY (id),
-    INDEX idx_group_id (group_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='空间成员表';
+create table `group_member`
+(
+    id         int(11)    not null auto_increment comment '自增id',
+    group_id   int(11)    not null comment '空间 id',
+    user_id    int(11)    not null comment '用户 id',
+    role       int(8)     not null comment '角色',
+    is_del     tinyint(2) not null default 0 comment '是否逻辑删除',
+    created_at datetime   not null default current_timestamp comment '记录创建时间',
+    updated_at datetime   not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id),
+    index idx_group_id (group_id)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '空间成员表';
 
--- 项目基本信息表
-CREATE TABLE IF NOT EXISTS `project` (
-    id             int(11)      NOT NULL AUTO_INCREMENT COMMENT '自增id',
-    name           varchar(128) NOT NULL COMMENT '项目英文名',
-    zh_name        varchar(128) NOT NULL COMMENT '项目中文名',
-    description    varchar(255) DEFAULT NULL COMMENT '项目描述',
-    owner_id       int(11)      NOT NULL COMMENT '项目拥有者id',
-    group_id       int(11)      DEFAULT NULL COMMENT '项目关联的空间id',
-    create_user_id int(11)      NOT NULL COMMENT '创建人id',
-    is_del         tinyint(2)   NOT NULL DEFAULT 0 COMMENT '是否逻辑删除',
-    created_at     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
-    updated_at     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
-    PRIMARY KEY (id),
-    INDEX idx_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目基本信息表';
+create table `project`
+(
+    id             int(11)      not null auto_increment comment '自增id',
+    name           varchar(128) not null comment '项目英文名',
+    zh_name        varchar(128) not null comment '项目中文名',
+    description    varchar(255)          default null comment '项目描述',
+    owner_id       int(11)      not null comment '项目拥有者id',
+    group_id       int(11)               default null comment '项目关联的空间id',
+    create_user_id int(11)      not null comment '创建人id',
+    is_del         tinyint(2)   not null default 0 comment '是否逻辑删除',
+    created_at     datetime     not null default current_timestamp comment '记录创建时间',
+    updated_at     datetime     not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id),
+    index idx_name (name)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '项目基本信息表';
 
--- 项目成员信息表
-CREATE TABLE IF NOT EXISTS `project_member` (
-    id         int(11)    NOT NULL AUTO_INCREMENT COMMENT '自增 id',
-    project_id int(11)    NOT NULL COMMENT '项目 id',
-    user_id    int(11)    NOT NULL COMMENT '用户 id',
-    role       tinyint(2) NOT NULL COMMENT '角色',
-    is_del     tinyint(2) NOT NULL DEFAULT 0 COMMENT '是否逻辑删除',
-    created_at datetime   NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
-    updated_at datetime   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
-    PRIMARY KEY (id),
-    INDEX idx_project_id (project_id),
-    INDEX idx_user_id (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目成员信息';
+create table `project_domain`
+(
+    id             int(11)      not null auto_increment comment '自增 id',
+    project_id     int(11)      not null comment '项目 id',
+    project_env_id int(11)      not null comment '工作区 id',
+    host           varchar(255) not null comment '目标域名',
+    is_del         tinyint(2)   not null default 0 comment '是否逻辑删除',
+    created_at     datetime     not null default current_timestamp comment '记录创建时间',
+    updated_at     datetime     not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id),
+    index idx_project_id (project_id)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '项目CNAME域名配置信息';
 
--- 项目环境表
-CREATE TABLE IF NOT EXISTS `project_env` (
-    id             int(11)      NOT NULL AUTO_INCREMENT COMMENT '自增id',
-    project_id     int(11)      NOT NULL COMMENT '项目 id',
-    name           varchar(128) NOT NULL COMMENT '环境名称',
-    env_type       tinyint(2)   NOT NULL COMMENT '环境类型，test、beta、gray、prod',
-    create_user_id int(11)      NOT NULL COMMENT '创建者 id',
-    is_del         tinyint(2)   NOT NULL DEFAULT 0 COMMENT '是否逻辑删除',
-    created_at     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
-    updated_at     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
-    PRIMARY
+create table `project_env`
+(
+    id             int(11)      not null auto_increment comment '自增id',
+    project_id     int(11)      not null comment '项目 id',
+    name           varchar(128) not null comment '环境名称',
+    env_type       tinyint(2)   not null comment '环境类型，test、beta、gray、prod',
+    create_user_id int(11)      not null comment '创建者 id',
+    is_del         tinyint(2)   not null default 0 comment '是否逻辑删除',
+    created_at     datetime     not null default current_timestamp comment '记录创建时间',
+    updated_at     datetime     not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id),
+    index idx_project_id (project_id)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '项目环境表';
+
+create table `project_env_deploy`
+(
+    id             int(11)      not null auto_increment comment '自增id',
+    project_id     int(11)      not null comment '项目 id（冗余）',
+    project_env_id int(11)      not null comment '环境',
+    remark         varchar(255)          default null comment '备注',
+    target_type    tinyint(2)   not null comment '地址类型',
+    target         varchar(512) not null comment '目标地址',
+    create_user_id int(11)      not null comment '创建者 id',
+    action_user_id int(11)      not null comment '操作者 id',
+    is_active      tinyint(2)            default 0 comment '是否生效',
+    is_del         tinyint(2)   not null default 0 comment '是否逻辑删除',
+    created_at     datetime     not null default current_timestamp comment '记录创建时间',
+    updated_at     datetime     not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id),
+    index idx_project_id (project_id),
+    index idx_project_env_id (project_env_id)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '部署记录表';
+
+create table `project_member`
+(
+    id         int(11)    not null auto_increment comment '自增 id',
+    project_id int(11)    not null comment '项目 id',
+    user_id    int(11)    not null comment '用户 id',
+    role       tinyint(2) not null comment '角色',
+    is_del     tinyint(2) not null default 0 comment '是否逻辑删除',
+    created_at datetime   not null default current_timestamp comment '记录创建时间',
+    updated_at datetime   not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id),
+    index idx_project_id (project_id),
+    index idx_user_id (user_id)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '项目成员信息';
+
+create table `user`
+(
+    id         int(11)      not null auto_increment comment '自增id',
+    name       varchar(64)  not null comment '用户名',
+    password   varchar(128) not null comment '密码',
+    is_del     tinyint(2)   not null default 0 comment '是否逻辑删除',
+    created_at datetime     not null default current_timestamp comment '记录创建时间',
+    updated_at datetime     not null default current_timestamp on update current_timestamp comment '记录更新时间',
+    primary key id (id),
+    index idx_name (name)
+) engine InnoDB
+  default charset utf8mb4
+  collate utf8mb4_unicode_ci comment '用户表';

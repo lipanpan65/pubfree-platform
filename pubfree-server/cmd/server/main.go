@@ -56,10 +56,10 @@ func main() {
 		logger.Logger.Fatalf("数据库初始化失败: %v", err)
 	}
 
-	// 自动迁移数据库表
-	if err := autoMigrate(db); err != nil {
-		logger.Logger.Fatalf("数据库迁移失败: %v", err)
-	}
+	// // 自动迁移数据库表
+	// if err := autoMigrate(db); err != nil {
+	// 	logger.Logger.Fatalf("数据库迁移失败: %v", err)
+	// }
 
 	// 初始化路由
 	r := router.SetupRouter(db)

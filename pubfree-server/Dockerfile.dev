@@ -1,6 +1,16 @@
 # PubFree Server - 开发环境 Dockerfile
-# 基于 Go 1.24.3 alpine 镜像
-FROM golang:1.24.3-alpine AS builder
+# 支持跨平台构建，解决 Apple Silicon 架构问题
+FROM --platform=$BUILDPLATFORM golang:1.24.3-alpine AS builder
+
+# 接收构建参数
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
+# 显示构建信息
+RUN echo "Building on $BUILDPLATFORM for $TARGETPLATFORM" && \
+    echo "Target OS: $TARGETOS, Target Arch: $TARGETARCH"
 
 # 设置工作目录
 WORKDIR /app
@@ -11,17 +21,18 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     build-base \
-    wget
+    wget \
+    file
 
 # 设置时区
 ENV TZ=Asia/Shanghai
 
-# 设置 Go 环境变量
-ENV GO111MODULE=on
-ENV GOPROXY=https://goproxy.cn,direct
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
+# 设置 Go 环境变量 - 支持跨平台编译
+ENV GO111MODULE=on \
+    GOPROXY=https://goproxy.cn,direct \
+    CGO_ENABLED=0 \
+    GOOS=${TARGETOS:-linux} \
+    GOARCH=${TARGETARCH:-amd64}
 
 # 复制 go.mod 和 go.sum
 COPY go.mod go.sum ./
@@ -33,17 +44,35 @@ RUN go mod download && go mod verify
 COPY . .
 
 # 构建应用（开发环境保留调试信息）
-RUN go build -ldflags="-X main.version=dev-$(date +%Y%m%d-%H%M%S)" -o server ./cmd/server
+RUN echo "Building Go application for $TARGETOS/$TARGETARCH..." && \
+    go build \
+    -ldflags="-X main.version=dev-$(date +%Y%m%d-%H%M%S) -X main.buildArch=$TARGETARCH -X main.buildOS=$TARGETOS" \
+    -o server ./cmd/server
 
-# 运行阶段
-FROM alpine:latest
+# 验证构建的二进制文件
+RUN echo "Binary file information:" && \
+    file server && \
+    ls -la server
+
+# 运行阶段 - 使用匹配目标平台的基础镜像
+FROM --platform=$TARGETPLATFORM alpine:3.19
+
+# 接收构建参数
+ARG TARGETPLATFORM
+ARG TARGETARCH
+
+# 显示运行平台信息
+RUN echo "Running on platform: $TARGETPLATFORM" && \
+    echo "Target architecture: $TARGETARCH" && \
+    echo "Container architecture: $(uname -m)"
 
 # 安装必要的包
 RUN apk --no-cache add \
     ca-certificates \
     tzdata \
     curl \
-    bash
+    bash \
+    file
 
 # 设置时区
 ENV TZ=Asia/Shanghai
@@ -70,11 +99,11 @@ RUN mkdir -p logs uploads tmp && \
     chmod +x server && \
     chmod +x /app/dev-start.sh
 
-# 创建必要的目录并设置权限
-RUN mkdir -p logs uploads tmp && \
-    chown -R appuser:appgroup /app && \
-    chmod +x server && \
-    chmod +x /app/dev-start.sh
+# 验证二进制文件在运行环境中的兼容性
+RUN echo "Final binary verification:" && \
+    file server && \
+    echo "Container architecture: $(uname -m)" && \
+    echo "Binary architecture should match container"
 
 # 切换到非 root 用户
 USER appuser
@@ -83,12 +112,13 @@ USER appuser
 EXPOSE 8080
 
 # 设置环境变量
-ENV GIN_MODE=debug
-ENV APP_ENV=dev
-ENV MODULE_NAME=pubfree-platform/pubfree-server
+ENV GIN_MODE=debug \
+    APP_ENV=dev \
+    MODULE_NAME=pubfree-platform/pubfree-server \
+    PLATFORM_ARCH=${TARGETARCH}
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+# 健康检查（增加启动时间）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # 启动命令

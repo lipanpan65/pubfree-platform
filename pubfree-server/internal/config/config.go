@@ -58,7 +58,7 @@ type RedisConfig struct {
 // JWTConfig JWT配置
 type JWTConfig struct {
 	Secret    string        `mapstructure:"secret"`
-	ExpiresAt time.Duration `mapstructure:"expires_at"`
+	ExpiresAt time.Duration `mapstructure:"expires_at"` // ✅ time.Duration 类型
 	Issuer    string        `mapstructure:"issuer"`
 }
 
